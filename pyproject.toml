@@ -18,7 +18,7 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/Vitexus/python3-libdatovka"
+Homepage = "https://github.com/VitexSoftware/python3-libdatovka"
 "Upstream library" = "https://gitlab.nic.cz/datovka/libdatovka"
 
 [tool.setuptools.packages.find]
