@@ -1,0 +1,32 @@
+Source: python3-libdatovka
+Section: python
+Priority: optional
+Maintainer: Vítězslav Dvořák <info@vitexsoftware.cz>
+Build-Depends:
+ debhelper-compat (= 13),
+ dh-python,
+ pybuild-plugin-pyproject,
+ python3-all,
+ python3-setuptools,
+Standards-Version: 4.7.0
+Homepage: https://github.com/VitexSoftware/python3-libdatovka
+Vcs-Git: https://github.com/VitexSoftware/python3-libdatovka.git
+Vcs-Browser: https://github.com/VitexSoftware/python3-libdatovka
+Rules-Requires-Root: no
+
+Package: python3-datovka
+Architecture: all
+Multi-Arch: foreign
+Depends:
+ libdatovka8,
+ ${misc:Depends},
+ ${python3:Depends},
+Description: Pythonic ctypes wrapper for libdatovka (Czech ISDS Data Boxes)
+ This library provides a small, high-level Python API on top of
+ libdatovka, the C client library for the Czech ISDS ("Datove schranky" /
+ Data Box) system. It loads libdatovka.so via ctypes at runtime -- no
+ compiled extension.
+ .
+ Covers session login/logout, listing received and sent messages,
+ fetching a full message with its attachments, and marking a message
+ as read.
