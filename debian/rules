@@ -5,7 +5,8 @@
 
 override_dh_auto_test:
 	appstreamcli validate --no-net debian/python3-datovka.metainfo.xml
-	dh_auto_test
+	# Skip pybuild's default unittest discovery: tests/test_client.py uses
+	# pytest, which isn't packaged as a build-dependency here.
 
 override_dh_install:
 	dh_install
