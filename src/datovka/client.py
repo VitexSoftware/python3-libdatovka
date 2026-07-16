@@ -7,12 +7,15 @@ bindings.
 from __future__ import annotations
 
 import ctypes
-from ctypes import POINTER, byref, c_int, c_ulong, cast
+from ctypes import POINTER, byref, c_ulong, cast
 from types import TracebackType
 
 from . import _capi
 from .exceptions import DatovkaError, NotLoggedInError
-from .models import Document, Envelope, Message, _timeval_to_datetime
+from .models import Document, Envelope, Message, OutgoingDocument, _timeval_to_datetime
+
+MAX_SUBJECT_LENGTH = 255
+"""ISDS caps dmAnnotation (the message subject) at 255 characters."""
 
 DEFAULT_URL = "https://ws1.mojedatovaschranka.cz/"
 """Production ISDS endpoint. Use a test/sandbox URL for development.
@@ -96,6 +99,23 @@ def _iter_isds_list(list_ptr, element_type):  # noqa: ANN001
         if data_ptr:
             yield data_ptr
         node = node.contents.next
+
+
+def _build_isds_list(items: list) -> list[_capi.IsdsList]:  # noqa: ANN001
+    """Chain a list of ctypes structs into a linked isds_list.
+
+    Returns the list of node structures (empty if ``items`` is empty);
+    ``nodes[0]`` is the head to pass to the C API. The caller must keep the
+    returned list (and ``items``) alive for as long as the C function using
+    them is running -- these are Python/ctypes-owned structures, never
+    passed to isds_*_free.
+    """
+    nodes = [_capi.IsdsList() for _ in items]
+    for i, (node, item) in enumerate(zip(nodes, items)):
+        node.data = cast(byref(item), ctypes.c_void_p)
+        node.destructor = None
+        node.next = cast(byref(nodes[i + 1]), POINTER(_capi.IsdsList)) if i + 1 < len(nodes) else None
+    return nodes
 
 
 class DatovkaClient:
@@ -227,6 +247,106 @@ class DatovkaClient:
         self._require_login()
         code = _capi.lib.isds_mark_message_read(self._ctx, message_id.encode("utf-8"))
         _check(self._ctx, code, "failed to mark message as read")
+
+    def send_message(
+        self,
+        recipient_box_id: str,
+        subject: str,
+        documents: list[OutgoingDocument],
+        *,
+        recipient_org_unit: str | None = None,
+        sender_ref_number: str | None = None,
+    ) -> None:
+        """Send a new message to a data box.
+
+        ``documents`` must contain exactly one document with ``is_main=True``
+        (the ISDS API's own requirement); any others are sent as enclosures.
+        Total attachment size is capped by ISDS at 50 MB.
+        """
+        self._require_login()
+        if len(subject) > MAX_SUBJECT_LENGTH:
+            raise ValueError(
+                f"subject is {len(subject)} characters, ISDS caps it at {MAX_SUBJECT_LENGTH}"
+            )
+        main_count = sum(1 for d in documents if d.is_main)
+        if main_count != 1:
+            raise ValueError(
+                f"documents must contain exactly one is_main=True entry, got {main_count}"
+            )
+
+        # Keep every ctypes-owned object referenced until after the call:
+        # C structures don't participate in Python's refcounting, so nothing
+        # here may be allowed to become garbage before isds_send_message runs.
+        buffers = [ctypes.create_string_buffer(d.data, len(d.data)) for d in documents]
+        doc_structs = [_capi.IsdsDocument() for _ in documents]
+        for doc_struct, doc, buf in zip(doc_structs, documents, buffers):
+            doc_struct.is_xml = False
+            doc_struct.data = cast(buf, ctypes.c_void_p)
+            doc_struct.data_length = len(doc.data)
+            doc_struct.dmMimeType = doc.mime_type.encode("utf-8")
+            doc_struct.dmFileMetaType = (
+                _capi.FILEMETATYPE_MAIN if doc.is_main else _capi.FILEMETATYPE_ENCLOSURE
+            )
+            doc_struct.dmFileDescr = doc.filename.encode("utf-8")
+        list_nodes = _build_isds_list(doc_structs)
+
+        envelope = _capi.IsdsEnvelope()
+        envelope.dbIDRecipient = recipient_box_id.encode("utf-8")
+        envelope.dmAnnotation = subject.encode("utf-8")
+        if recipient_org_unit is not None:
+            envelope.dmRecipientOrgUnit = recipient_org_unit.encode("utf-8")
+        if sender_ref_number is not None:
+            envelope.dmSenderRefNumber = sender_ref_number.encode("utf-8")
+
+        message = _capi.IsdsMessage()
+        message.envelope = cast(byref(envelope), POINTER(_capi.IsdsEnvelope))
+        message.documents = (
+            cast(byref(list_nodes[0]), POINTER(_capi.IsdsList)) if list_nodes else None
+        )
+
+        code = _capi.lib.isds_send_message(self._ctx, byref(message))
+        # No isds_message_free here: `message` is Python/ctypes-owned, not
+        # something the library allocated for us to free.
+        _check(self._ctx, code, "failed to send message")
+
+    def find_box_live(self, query: str, limit: int = 10) -> list[dict]:
+        """Look up data boxes by name/IČO/address via the live ISDS search.
+
+        This calls the rate-limited SOAP API directly. Prefer an offline
+        directory (e.g. the ``seznamds`` package) for routine lookups; use
+        this only as a fallback.
+        """
+        self._require_login()
+        boxes_head = POINTER(_capi.IsdsList)()
+        page_size = c_ulong(limit)
+        code = _capi.lib.isds_find_box_by_fulltext(
+            self._ctx,
+            query.encode("utf-8"),
+            None,  # target: search all fields
+            None,  # box_type: any
+            byref(page_size),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            byref(boxes_head),
+        )
+        try:
+            _check(self._ctx, code, "failed to search for data boxes")
+            return [
+                {
+                    "box_id": _decode(box.contents.dbID),
+                    "type": box.contents.dbType,
+                    "name": _decode(box.contents.name),
+                    "address": _decode(box.contents.address),
+                }
+                for box in _iter_isds_list(boxes_head, _capi.IsdsFulltextResult)
+            ]
+        finally:
+            if boxes_head:
+                _capi.lib.isds_list_free(byref(boxes_head))
 
     def close(self) -> None:
         if self._ctx:

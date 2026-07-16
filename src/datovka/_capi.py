@@ -80,6 +80,12 @@ FILEMETATYPE_ENCLOSURE = 1
 FILEMETATYPE_SIGNATURE = 2
 FILEMETATYPE_META = 3
 
+# isds_fulltext_target enum (search field for isds_find_box_by_fulltext)
+FULLTEXT_ALL = 0
+FULLTEXT_ADDRESS = 1
+FULLTEXT_IC = 2
+FULLTEXT_BOX_ID = 3
+
 
 class IsdsTimeval(Structure):
     _fields_ = [
@@ -172,6 +178,19 @@ class IsdsMessage(Structure):
     ]
 
 
+class IsdsFulltextResult(Structure):
+    _fields_ = [
+        ("dbID", c_char_p),
+        ("dbType", c_int),
+        ("name", c_char_p),
+        ("name_match_start", c_void_p),
+        ("name_match_end", c_void_p),
+        ("address", c_char_p),
+        ("address_match_start", c_void_p),
+        ("address_match_end", c_void_p),
+    ]
+
+
 # --- Function prototypes -----------------------------------------------
 
 lib.isds_init.argtypes = []
@@ -246,11 +265,30 @@ lib.isds_mark_message_read.restype = c_int
 lib.isds_send_message.argtypes = [c_void_p, POINTER(IsdsMessage)]
 lib.isds_send_message.restype = c_int
 
+lib.isds_find_box_by_fulltext.argtypes = [
+    c_void_p,
+    c_char_p,  # query
+    POINTER(c_int),  # target (isds_fulltext_target*)
+    POINTER(c_int),  # box_type (isds_DbType*)
+    POINTER(c_ulong),  # page_size
+    POINTER(c_ulong),  # page_number
+    POINTER(c_bool),  # track_matches
+    POINTER(POINTER(c_ulong)),  # total_matching_boxes
+    POINTER(POINTER(c_ulong)),  # current_page_beginning
+    POINTER(POINTER(c_ulong)),  # current_page_size
+    POINTER(POINTER(c_bool)),  # last_page
+    POINTER(POINTER(IsdsList)),  # boxes
+]
+lib.isds_find_box_by_fulltext.restype = c_int
+
 lib.isds_message_free.argtypes = [POINTER(POINTER(IsdsMessage))]
 lib.isds_message_free.restype = None
 
 lib.isds_list_free.argtypes = [POINTER(POINTER(IsdsList))]
 lib.isds_list_free.restype = None
+
+lib.isds_fulltext_result_free.argtypes = [POINTER(POINTER(IsdsFulltextResult))]
+lib.isds_fulltext_result_free.restype = None
 
 lib.isds_strerror.argtypes = [c_int]
 lib.isds_strerror.restype = c_char_p

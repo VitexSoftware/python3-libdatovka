@@ -43,3 +43,18 @@ class Message:
 
     envelope: Envelope
     documents: list[Document] = field(default_factory=list)
+
+
+@dataclass(frozen=True, slots=True)
+class OutgoingDocument:
+    """A document to attach to a message being sent.
+
+    Distinct from :class:`Document` (which is read-only, populated from a
+    message libdatovka gave us) to keep "what the library gives you" and
+    "what you give the library" shapes explicit.
+    """
+
+    filename: str
+    mime_type: str
+    data: bytes
+    is_main: bool = False

@@ -2,7 +2,7 @@
 
 from .client import DatovkaClient
 from .exceptions import DatovkaError, NotLoggedInError
-from .models import Document, Envelope, Message
+from .models import Document, Envelope, Message, OutgoingDocument
 
 __all__ = [
     "DatovkaClient",
@@ -11,4 +11,5 @@ __all__ = [
     "Envelope",
     "Document",
     "Message",
+    "OutgoingDocument",
 ]

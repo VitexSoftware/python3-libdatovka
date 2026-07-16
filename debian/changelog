@@ -1,3 +1,19 @@
+python3-libdatovka (0.2.0) unstable; urgency=medium
+
+  * Add DatovkaClient.send_message() for sending new messages with
+    file attachments, and DatovkaClient.find_box_live() for looking
+    up a recipient's data box ID via the live ISDS fulltext search.
+  * Add OutgoingDocument model for composing attachments to send.
+  * Fix _build_isds_list() passing raw ctypes structs where the C API
+    expects pointers, causing send_message() to crash with
+    "'IsdsDocument' object cannot be interpreted as ctypes.c_void_p"
+    before ever reaching the server. Found by a live send test
+    (rejected server-side only by ISDS's own "cannot send to your
+    own data box" rule, confirming the envelope/document encoding
+    itself is correct).
+
+ -- Vítězslav Dvořák <info@vitexsoftware.cz>  Thu, 16 Jul 2026 10:43:27 +0200
+
 python3-libdatovka (0.1.1) unstable; urgency=medium
 
   * Fix DEFAULT_URL missing trailing slash, causing isds_login to
