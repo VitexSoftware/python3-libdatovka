@@ -14,8 +14,12 @@ from . import _capi
 from .exceptions import DatovkaError, NotLoggedInError
 from .models import Document, Envelope, Message, _timeval_to_datetime
 
-DEFAULT_URL = "https://ws1.mojedatovaschranka.cz"
-"""Production ISDS endpoint. Use a test/sandbox URL for development."""
+DEFAULT_URL = "https://ws1.mojedatovaschranka.cz/"
+"""Production ISDS endpoint. Use a test/sandbox URL for development.
+
+Trailing slash is required: libdatovka appends its SOAP service paths
+(e.g. "DS/dz") directly onto this string with no separator.
+"""
 
 _INIT_REFCOUNT = 0
 

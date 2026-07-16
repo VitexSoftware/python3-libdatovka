@@ -1,3 +1,12 @@
+python3-libdatovka (0.1.1) unstable; urgency=medium
+
+  * Fix DEFAULT_URL missing trailing slash, causing isds_login to
+    concatenate the SOAP service path directly onto the hostname
+    (e.g. "mojedatovaschranka.czDS/dz") and fail DNS resolution.
+    Found by testing against a real ISDS account.
+
+ -- Vítězslav Dvořák <info@vitexsoftware.cz>  Thu, 16 Jul 2026 10:07:50 +0200
+
 python3-libdatovka (0.1.0) unstable; urgency=medium
 
   * Initial Debian packaging.
