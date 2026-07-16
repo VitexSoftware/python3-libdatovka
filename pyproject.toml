@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "datovka"
+version = "0.1.0"
+description = "Pythonic ctypes wrapper around libdatovka for accessing the Czech ISDS Data Box system"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "LGPL-3.0-or-later" }
+authors = [{ name = "Vítězslav Dvořák", email = "info@vitexsoftware.cz" }]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
+    "Operating System :: POSIX :: Linux",
+    "Topic :: Communications",
+]
+
+[project.urls]
+Homepage = "https://github.com/Vitexus/python3-libdatovka"
+"Upstream library" = "https://gitlab.nic.cz/datovka/libdatovka"
+
+[tool.setuptools.packages.find]
+where = ["src"]
