@@ -1,5 +1,7 @@
 # datovka
 
+![python3-libdatovka logo](debian/python3-libdatovka.svg)
+
 A Pythonic [ctypes](https://docs.python.org/3/library/ctypes.html) wrapper
 around [libdatovka](https://gitlab.nic.cz/datovka/libdatovka), the C client
 library for the Czech ISDS ("Datové schránky" / Data Box) system.

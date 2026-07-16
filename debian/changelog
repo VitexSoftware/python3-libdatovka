@@ -11,6 +11,8 @@ python3-libdatovka (0.2.0) unstable; urgency=medium
     (rejected server-side only by ISDS's own "cannot send to your
     own data box" rule, confirming the envelope/document encoding
     itself is correct).
+  * Update python3-libdatovka.svg application icon with a redesigned
+    logo.
 
  -- Vítězslav Dvořák <info@vitexsoftware.cz>  Thu, 16 Jul 2026 10:43:27 +0200
 
